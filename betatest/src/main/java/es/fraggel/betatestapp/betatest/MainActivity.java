@@ -18,6 +18,7 @@ import java.util.ArrayList;
 
 public class MainActivity extends ActionBarActivity {
     ArrayList listaImagenes=null;
+    private static final int SELECT_PHOTO = 100;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,10 +50,18 @@ public class MainActivity extends ActionBarActivity {
                 //revisamos si el checkbox está marcado enviamos el ícono de la aplicación como adjunto
 
                     //colocamos el adjunto en el stream
-                    itSend.putExtra(Intent.EXTRA_STREAM, Uri.parse(""));
+                if(listaImagenes!=null && listaImagenes.size()>0){
+                    String tmp="";
+                    for (int x=0;x<listaImagenes.size();x++){
+                        itSend.putExtra(Intent.EXTRA_STREAM, Uri.parse((String)listaImagenes.get(x)));
+                        itSend.setType("image/png");
+                    }
+
+                }
+
 
                     //indicamos el tipo de dato
-                    itSend.setType("image/png");
+
 
 
                 //iniciamos la actividad
@@ -62,12 +71,10 @@ public class MainActivity extends ActionBarActivity {
         btn1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(listaImagenes!=null && listaImagenes.size()>0){
-                    listaImagenes.add("Imagen");
-                }else{
-                    listaImagenes=new ArrayList();
-                    listaImagenes.add("Imagen");
-                }
+                Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
+                photoPickerIntent.setType("image/*");
+                startActivityForResult(photoPickerIntent, SELECT_PHOTO);
+
 
             }
         });
@@ -77,7 +84,7 @@ public class MainActivity extends ActionBarActivity {
                 if(listaImagenes!=null && listaImagenes.size()>0){
                     String tmp="";
                     for (int x=0;x<listaImagenes.size();x++){
-                        tmp=tmp+"\n"+listaImagenes.get(x+1);
+                        tmp=tmp+"\n"+listaImagenes.get(x);
                     }
                     Toast.makeText(getApplicationContext(),tmp,Toast.LENGTH_LONG).show();
                 }
@@ -112,5 +119,22 @@ public class MainActivity extends ActionBarActivity {
         }
         return super.onOptionsItemSelected(item);
     }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent imageReturnedIntent) {
+        super.onActivityResult(requestCode, resultCode, imageReturnedIntent);
 
+        switch(requestCode) {
+            case SELECT_PHOTO:
+                if(resultCode == RESULT_OK){
+                    Uri selectedImage = imageReturnedIntent.getData();
+                    if(listaImagenes!=null && listaImagenes.size()>0){
+                        listaImagenes.add(selectedImage.getPath());
+                    }else{
+                        listaImagenes=new ArrayList();
+                        listaImagenes.add(selectedImage.getPath());
+                    }
+
+                }
+        }
+    }
 }
