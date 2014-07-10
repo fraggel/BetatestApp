@@ -7,8 +7,8 @@
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
         <option name="modules">
           <set>
-            <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/betatest" />
+            <option value="D:\Programacion\androidsuiteworkspace\BetatestApp" />
+            <option value="D:\Programacion\androidsuiteworkspace\BetatestApp\betatest" />
           </set>
         </option>
       </GradleProjectSettings>

@@ -1,10 +1,13 @@
 package es.fraggel.betatestapp.betatest;
 
+import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.text.Editable;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -16,61 +19,73 @@ import android.widget.Toast;
 import java.util.ArrayList;
 
 
-public class MainActivity extends ActionBarActivity {
-    ArrayList listaImagenes=null;
+public class MainActivity extends Activity implements View.OnClickListener {
+    ArrayList<String> listaImagenes=null;
+    Editable msg=null;
     private static final int SELECT_PHOTO = 100;
+    SharedPreferences ajustes=null;
+    SharedPreferences.Editor editorAjustes=null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        ajustes=getSharedPreferences("betatestApp", Context.MODE_PRIVATE);
+        EditText edT=(EditText)findViewById(R.id.editText);
+        edT.setOnClickListener(this);
+        edT.setText(ajustes.getString("nombre","Escribe tu nombre"));
         Button btnSend = (Button) findViewById(R.id.btnSend);
         Button btn1 = (Button) findViewById(R.id.button1);
         Button btn2 = (Button) findViewById(R.id.button2);
         Button btn3 = (Button) findViewById(R.id.button3);
+        EditText etBody = (EditText) findViewById(R.id.etBody);
+        etBody.setText(msg);
 
         btnSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 //obtenemos los datos para el envío del correo
+                EditText etBody = (EditText) findViewById(R.id.etBody);
+                msg=etBody.getText();
                 String etEmail = "jiayuteamforce6@gmail.com";
                 String etSubject = Build.DISPLAY;
-                EditText etBody = (EditText) findViewById(R.id.etBody);
 
-                //es necesario un intent que levante la actividad deseada
-                Intent itSend = new Intent(android.content.Intent.ACTION_SEND);
+                Intent i = new Intent(Intent.ACTION_SEND_MULTIPLE);
+                i.setType("message/rfc822");
+                i.putExtra(Intent.EXTRA_EMAIL,
+                        new String[]{etEmail});
+                String subject="";
+                if(!"".equals(ajustes.getString("nombre","Escribe tu nombre").toString().trim()) && !"Escribe tu nombre".equals(ajustes.getString("nombre","Escribe tu nombre").toString().trim())){
+                    subject=ajustes.getString("nombre","Escribe tu nombre")+": "+etSubject;
+                }else{
+                    subject=etSubject;
+                }
 
-                //vamos a enviar texto plano a menos que el checkbox esté marcado
-                itSend.setType("plain/text");
+                i.putExtra(Intent.EXTRA_SUBJECT, subject);
+                i.putExtra(Intent.EXTRA_TEXT, msg);
 
-                //colocamos los datos para el envío
-                itSend.putExtra(android.content.Intent.EXTRA_EMAIL, new String[]{ etEmail.toString()});
-                itSend.putExtra(android.content.Intent.EXTRA_SUBJECT, etSubject.toString());
-                itSend.putExtra(android.content.Intent.EXTRA_TEXT, etBody.getText());
-
-                //revisamos si el checkbox está marcado enviamos el ícono de la aplicación como adjunto
 
                     //colocamos el adjunto en el stream
                 if(listaImagenes!=null && listaImagenes.size()>0){
-                    String tmp="";
+                    ArrayList tmp=new ArrayList();
                     for (int x=0;x<listaImagenes.size();x++){
-                        itSend.putExtra(Intent.EXTRA_STREAM, Uri.parse((String)listaImagenes.get(x)));
-                        itSend.setType("image/png");
+                        tmp.add(Uri.parse(listaImagenes.get(x)));
                     }
+                    i.putParcelableArrayListExtra(Intent.EXTRA_STREAM,tmp);
 
                 }
+                try {
 
-
-                    //indicamos el tipo de dato
-
-
-
-                //iniciamos la actividad
-                startActivity(itSend);
+                    startActivity(Intent.createChooser(i,"Enviar"));
+                } catch (android.content.ActivityNotFoundException ex) {
+                    Toast.makeText(getApplicationContext(), "Error al enviar email", Toast.LENGTH_SHORT).show();
+                }
             }
         });
         btn1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                EditText etBody = (EditText) findViewById(R.id.etBody);
+                msg=etBody.getText();
                 Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
                 photoPickerIntent.setType("image/*");
                 startActivityForResult(photoPickerIntent, SELECT_PHOTO);
@@ -81,13 +96,11 @@ public class MainActivity extends ActionBarActivity {
         btn2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(listaImagenes!=null && listaImagenes.size()>0){
-                    String tmp="";
-                    for (int x=0;x<listaImagenes.size();x++){
-                        tmp=tmp+"\n"+listaImagenes.get(x);
-                    }
-                    Toast.makeText(getApplicationContext(),tmp,Toast.LENGTH_LONG).show();
-                }
+                EditText etBody = (EditText) findViewById(R.id.etBody);
+                msg=etBody.getText();
+                Intent itt= new Intent(getApplicationContext(),image_view.class);
+                itt.putExtra("listaImagenes",listaImagenes);
+                startActivityForResult(itt,1);
 
             }
         });
@@ -122,19 +135,39 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent imageReturnedIntent) {
         super.onActivityResult(requestCode, resultCode, imageReturnedIntent);
-
         switch(requestCode) {
             case SELECT_PHOTO:
                 if(resultCode == RESULT_OK){
-                    Uri selectedImage = imageReturnedIntent.getData();
+                    //Toast.makeText(getApplicationContext(),imageReturnedIntent.getDataString(),Toast.LENGTH_LONG).show();
+                    //Uri selectedImage = imageReturnedIntent.getData();
                     if(listaImagenes!=null && listaImagenes.size()>0){
-                        listaImagenes.add(selectedImage.getPath());
+                        listaImagenes.add(imageReturnedIntent.getDataString());
                     }else{
                         listaImagenes=new ArrayList();
-                        listaImagenes.add(selectedImage.getPath());
+                        listaImagenes.add(imageReturnedIntent.getDataString());
                     }
 
                 }
+                break;
+            case 1:
+                if(resultCode == RESULT_OK) {
+                    listaImagenes = (ArrayList) imageReturnedIntent.getSerializableExtra("result");
+                }
+                break;
+        }
+    }
+
+    @Override
+    public void onClick(View view) {
+        EditText edT=(EditText)findViewById(R.id.editText);
+        if(!"".equals(edT.getText().toString().trim()) && !"Escribe tu nombre".equals(edT.getText().toString().trim())){
+            editorAjustes=ajustes.edit();
+            editorAjustes.putString("nombre",edT.getText().toString().trim());
+            editorAjustes.commit();
+            EditText etBody = (EditText) findViewById(R.id.etBody);
+            etBody.requestFocus();
+        }else {
+            edT.setText("");
         }
     }
 }
